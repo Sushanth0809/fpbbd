@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fingerprint Blood Group Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        <div class="warning">
+            <p><strong>⚠️ Important:</strong> This AI model has ~80% accuracy and works best with clear fingerprint scans. Results are for research purposes only and should not replace medical blood tests.</p>
+        </div>
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .warning p {
+            color: #856404;
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .upload-text strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .file-info {
+            display: none;
+            background: #f0f2ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .preview.show {
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-predict {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-predict:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-predict:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-clear {
+            background: #e8ebff;
+            color: #667eea;
+        }
+
+        .btn-clear:hover {
+            background: #d0d7ff;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            display: none;
+            background: #f0f9ff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 25px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .result.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .blood-group {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 2px solid #667eea;
+        }
+
+        .confidence {
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .confidence-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .confidence-item:last-child {
+            border-bottom: none;
+        }
+
+        .confidence-label {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .confidence-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #10b981;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #f87171;
+            border-radius: 10px;
+            padding: 15px;
+            color: #dc2626;
+            display: none;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .error.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        .info-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #92400e;
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .blood-group {
+                font-size: 36px;
+            }
+
+            button {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">🩸</div>
+            <h1>Blood Group Detection</h1>
+            <p>Upload a fingerprint image to predict blood group</p>
+        </div>
+
+        <div class="warning">
+            <p><strong>⚠️ Important:</strong> This AI model has ~80% accuracy and works best with clear fingerprint scans. Results are for research purposes only and should not replace medical blood tests.</p>
+        </div>
+
+        <form id="uploadForm">
+            <!-- Upload Area -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">
+                    <strong>Click to upload or drag and drop</strong>
+                    <span>PNG, JPG, BMP or GIF (Max 16MB)</span>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" required>
+            </div>
+
+            <!-- File Info -->
+            <div class="file-info" id="fileInfo"></div>
+
+            <!-- Image Preview -->
+            <img id="preview" class="preview" alt="Preview">
+
+            <!-- Error Messages -->
+            <div class="error" id="error"></div>
+
+            <!-- Button Group -->
+            <div class="button-group">
+                <button type="button" class="btn-predict" id="predictBtn">
+                    🔍 Predict Blood Group
+                </button>
+                <button type="button" class="btn-clear" id="clearBtn">
+                    🔄 Clear
+                </button>
+            </div>
+        </form>
+
+        <!-- Loading Spinner -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing fingerprint...</p>
+        </div>
+
+        <!-- Results -->
+        <div class="result" id="result">
+            <div class="success">✅ Prediction Complete!</div>
+            <h2>Your Blood Group</h2>
+            <div class="blood-group" id="bloodGroup"></div>
+            
+            <div class="confidence">
+                <div class="confidence-item">
+                    <span class="confidence-label">ABO Group:</span>
+                    <span class="confidence-value" id="aboResult"></span>
+                </div>
+                <div class="confidence-item">
+                    <span class="confidence-label">Rh Factor:</span>
+                    <span class="confidence-value" id="rhResult"></span>
+                </div>
+                <div class="confidence-item">
+                    <span class="confidence-label">ABO Confidence:</span>
+                    <span class="confidence-value" id="aboConf"></span>
+                </div>
+                <div class="confidence-item">
+                    <span class="confidence-label">Rh Confidence:</span>
+                    <span class="confidence-value" id="rhConf"></span>
+                </div>
+                <div class="confidence-item">
+                    <span class="confidence-label">Overall Confidence:</span>
+                    <span class="confidence-value" id="overallConf"></span>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <strong>⚠️ Important:</strong> This is an AI-based prediction tool for preliminary screening only. 
+                Please consult medical professionals for official blood group confirmation.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const fileInfo = document.getElementById('fileInfo');
+        const error = document.getElementById('error');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const predictBtn = document.getElementById('predictBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect();
+        });
+
+        // File input change
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!['image/png', 'image/jpeg', 'image/bmp', 'image/gif'].includes(file.type)) {
+                showError('Invalid file format. Please upload PNG, JPG, BMP, or GIF.');
+                return;
+            }
+
+            // Validate file size
+            if (file.size > 16 * 1024 * 1024) {
+                showError('File is too large. Maximum size is 16MB.');
+                return;
+            }
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+
+            // Show file info
+            fileInfo.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            fileInfo.classList.add('show');
+
+            // Clear previous results
+            error.classList.remove('show');
+            result.classList.remove('show');
+        }
+
+        // Predict button
+        predictBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            if (!fileInput.files[0]) {
+                showError('Please select an image first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            // Show loading
+            loading.style.display = 'block';
+            result.classList.remove('show');
+            error.classList.remove('show');
+            predictBtn.disabled = true;
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResult(data);
+                } else {
+                    showError(data.error || 'Prediction failed. Please try again.');
+                }
+            } catch (err) {
+                showError('Network error. Please check your connection.');
+                console.error(err);
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        });
+
+        // Clear button
+        clearBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fileInput.value = '';
+            preview.classList.remove('show');
+            fileInfo.classList.remove('show');
+            error.classList.remove('show');
+            result.classList.remove('show');
+            loading.style.display = 'none';
+        });
+
+        function displayResult(data) {
+            document.getElementById('bloodGroup').textContent = data.blood_group;
+            document.getElementById('aboResult').textContent = data.abo;
+            document.getElementById('rhResult').textContent = data.rh;
+            document.getElementById('aboConf').textContent = data.abo_confidence;
+            document.getElementById('rhConf').textContent = data.rh_confidence;
+            document.getElementById('overallConf').textContent = data.overall_confidence;
+            result.classList.add('show');
+        }
+
+        function showError(message) {
+            error.textContent = `❌ Error: ${message}`;
+            error.classList.add('show');
+        }
+    </script>
+</body>
+</html>
